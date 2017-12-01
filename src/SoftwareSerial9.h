@@ -37,6 +37,7 @@ class SoftwareSerial9 : public Stream
 public:
    SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false, unsigned int buffSize = 64);
    SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false);
+   SoftwareSerial9(int receivePin, int transmitPin);
    ~SoftwareSerial9();
 
    void begin(long speed);

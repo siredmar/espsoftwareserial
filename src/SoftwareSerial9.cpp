@@ -99,6 +99,11 @@ SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_l
     SoftwareSerial9(receivePin, transmitPin, inverse_logic, 64);
 }
 
+SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin)
+{
+    SoftwareSerial9(receivePin, transmitPin, false, 64);
+}
+
 SoftwareSerial9::~SoftwareSerial9() {
    enableRx(false);
    if (m_rxValid)
