@@ -35,8 +35,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 class SoftwareSerial9 : public Stream
 {
 public:
-   SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false, unsigned int buffSize = 64);
-   SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false);
+   SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logig, unsigned int buffSize);
+   SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic);
    SoftwareSerial9(int receivePin, int transmitPin);
    ~SoftwareSerial9();
 

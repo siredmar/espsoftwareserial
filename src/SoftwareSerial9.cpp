@@ -94,7 +94,7 @@ SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_l
    begin(9600);
 }
 
-SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false)
+SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic)
 {
     SoftwareSerial9(receivePin, transmitPin, inverse_logic, 64);
 }
@@ -152,7 +152,7 @@ void SoftwareSerial9::enableRx(bool on) {
 
 int SoftwareSerial9::read() {
    if (!m_rxValid || (m_inPos == m_outPos)) return -1;
-   SoftwareSerial9 ch = m_buffer[m_outPos];
+   uint16_t ch = m_buffer[m_outPos];
    m_outPos = (m_outPos+1) % m_buffSize;
    return ch;
 }
