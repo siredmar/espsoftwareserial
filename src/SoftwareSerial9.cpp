@@ -1,6 +1,6 @@
 /*
 
-SoftwareSerial.cpp - Implementation of the Arduino software serial for ESP8266.
+SoftwareSerial9.cpp - Implementation of the Arduino software serial for ESP8266.
 Copyright (c) 2015-2016 Peter Lerup. All rights reserved.
 
 This library is free software; you can redistribute it and/or
@@ -27,13 +27,13 @@ extern "C" {
 #include "gpio.h"
 }
 
-#include <SoftwareSerial.h>
+#include <SoftwareSerial9.h>
 
 #define MAX_PIN 15
 
 // As the Arduino attachInterrupt has no parameter, lists of objects
 // and callbacks corresponding to each possible GPIO pins have to be defined
-SoftwareSerial *ObjList[MAX_PIN+1];
+SoftwareSerial9 *ObjList[MAX_PIN+1];
 
 void ICACHE_RAM_ATTR sws_isr_0() { ObjList[0]->rxRead(); };
 void ICACHE_RAM_ATTR sws_isr_1() { ObjList[1]->rxRead(); };
@@ -66,7 +66,7 @@ static void (*ISRList[MAX_PIN+1])() = {
       sws_isr_15
 };
 
-SoftwareSerial::SoftwareSerial(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize) {
+SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize) {
    m_rxValid = m_txValid = m_txEnableValid = false;
    m_buffer = NULL;
    m_invert = inverse_logic;
@@ -75,7 +75,7 @@ SoftwareSerial::SoftwareSerial(int receivePin, int transmitPin, bool inverse_log
    if (isValidGPIOpin(receivePin)) {
       m_rxPin = receivePin;
       m_buffSize = buffSize;
-      m_buffer = (uint8_t*)malloc(m_buffSize);
+      m_buffer = (uint16_t*)malloc(m_buffSize);
       if (m_buffer != NULL) {
          m_rxValid = true;
          m_inPos = m_outPos = 0;
@@ -94,7 +94,12 @@ SoftwareSerial::SoftwareSerial(int receivePin, int transmitPin, bool inverse_log
    begin(9600);
 }
 
-SoftwareSerial::~SoftwareSerial() {
+SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic = false)
+{
+    SoftwareSerial9(receivePin, transmitPin, inverse_logic, 64);
+}
+
+SoftwareSerial9::~SoftwareSerial9() {
    enableRx(false);
    if (m_rxValid)
       ObjList[m_rxPin] = NULL;
@@ -102,11 +107,11 @@ SoftwareSerial::~SoftwareSerial() {
       free(m_buffer);
 }
 
-bool SoftwareSerial::isValidGPIOpin(int pin) {
+bool SoftwareSerial9::isValidGPIOpin(int pin) {
    return (pin >= 0 && pin <= 5) || (pin >= 12 && pin <= MAX_PIN);
 }
 
-void SoftwareSerial::begin(long speed) {
+void SoftwareSerial9::begin(long speed) {
    // Use getCycleCount() loop to get as exact timing as possible
    m_bitTime = ESP.getCpuFreqMHz()*1000000/speed;
    m_highSpeed = speed > 9600;
@@ -115,11 +120,11 @@ void SoftwareSerial::begin(long speed) {
      enableRx(true);
 }
 
-long SoftwareSerial::baudRate() {
+long SoftwareSerial9::baudRate() {
    return ESP.getCpuFreqMHz()*1000000/m_bitTime;
 }
 
-void SoftwareSerial::setTransmitEnablePin(int transmitEnablePin) {
+void SoftwareSerial9::setTransmitEnablePin(int transmitEnablePin) {
   if (isValidGPIOpin(transmitEnablePin)) {
      m_txEnableValid = true;
      m_txEnablePin = transmitEnablePin;
@@ -130,7 +135,7 @@ void SoftwareSerial::setTransmitEnablePin(int transmitEnablePin) {
   }
 }
 
-void SoftwareSerial::enableRx(bool on) {
+void SoftwareSerial9::enableRx(bool on) {
    if (m_rxValid) {
       if (on)
          attachInterrupt(m_rxPin, ISRList[m_rxPin], m_invert ? RISING : FALLING);
@@ -140,14 +145,14 @@ void SoftwareSerial::enableRx(bool on) {
    }
 }
 
-int SoftwareSerial::read() {
+int SoftwareSerial9::read() {
    if (!m_rxValid || (m_inPos == m_outPos)) return -1;
-   uint8_t ch = m_buffer[m_outPos];
+   SoftwareSerial9 ch = m_buffer[m_outPos];
    m_outPos = (m_outPos+1) % m_buffSize;
    return ch;
 }
 
-int SoftwareSerial::available() {
+int SoftwareSerial9::available() {
    if (!m_rxValid) return 0;
    int avail = m_inPos - m_outPos;
    if (avail < 0) avail += m_buffSize;
@@ -156,7 +161,7 @@ int SoftwareSerial::available() {
 
 #define WAIT { while (ESP.getCycleCount()-start < wait) if (!m_highSpeed) optimistic_yield(1); wait += m_bitTime; }
 
-size_t SoftwareSerial::write(uint8_t b) {
+size_t SoftwareSerial9::write(uint8_t b) {
    if (!m_txValid) return 0;
 
    if (m_invert) b = ~b;
@@ -184,27 +189,55 @@ size_t SoftwareSerial::write(uint8_t b) {
    return 1;
 }
 
-void SoftwareSerial::flush() {
+size_t SoftwareSerial9::write9(uint16_t b) {
+   if (!m_txValid) return 0;
+
+   if (m_invert) b = ~b;
+   if (m_highSpeed)
+     // Disable interrupts in order to get a clean transmit
+     cli();
+   if (m_txEnableValid) digitalWrite(m_txEnablePin, HIGH);
+   unsigned long wait = m_bitTime;
+   digitalWrite(m_txPin, HIGH);
+   unsigned long start = ESP.getCycleCount();
+    // Start bit;
+   digitalWrite(m_txPin, LOW);
+   WAIT;
+   for (int i = 0; i < 9; i++) {
+     digitalWrite(m_txPin, (b & 1) ? HIGH : LOW);
+     WAIT;
+     b >>= 1;
+   }
+   // Stop bit
+   digitalWrite(m_txPin, HIGH);
+   WAIT;
+   if (m_txEnableValid) digitalWrite(m_txEnablePin, LOW);
+   if (m_highSpeed)
+    sei();
+   return 1;
+}
+
+void SoftwareSerial9::flush() {
    m_inPos = m_outPos = 0;
 }
 
-bool SoftwareSerial::overflow() {
+bool SoftwareSerial9::overflow() {
    bool res = m_overflow;
    m_overflow = false;
    return res;
 }
 
-int SoftwareSerial::peek() {
+int SoftwareSerial9::peek() {
    if (!m_rxValid || (m_inPos == m_outPos)) return -1;
    return m_buffer[m_outPos];
 }
 
-void ICACHE_RAM_ATTR SoftwareSerial::rxRead() {
+void ICACHE_RAM_ATTR SoftwareSerial9::rxRead() {
    // Advance the starting point for the samples but compensate for the
    // initial delay which occurs before the interrupt is delivered
    unsigned long wait = m_bitTime + m_bitTime/3 - 500;
    unsigned long start = ESP.getCycleCount();
-   uint8_t rec = 0;
+   uint16_t rec = 0;
    for (int i = 0; i < 8; i++) {
      WAIT;
      rec >>= 1;
