@@ -66,7 +66,8 @@ static void (*ISRList[MAX_PIN+1])() = {
       sws_isr_15
 };
 
-SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize) {
+void SoftwareSerial9::RegisterInterface(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize) 
+{
    m_rxValid = m_txValid = m_txEnableValid = false;
    m_buffer = NULL;
    m_invert = inverse_logic;
@@ -94,14 +95,19 @@ SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_l
    begin(9600);
 }
 
+SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize)
+{
+  RegisterInterface(receivePin, transmitPin, inverse_logic, buffSize);
+}
+
 SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin, bool inverse_logic)
 {
-    SoftwareSerial9(receivePin, transmitPin, inverse_logic, 64);
+    RegisterInterface(receivePin, transmitPin, inverse_logic, 256);
 }
 
 SoftwareSerial9::SoftwareSerial9(int receivePin, int transmitPin)
 {
-    SoftwareSerial9(receivePin, transmitPin, false, 64);
+    RegisterInterface(receivePin, transmitPin, false, 256);
 }
 
 SoftwareSerial9::~SoftwareSerial9() {

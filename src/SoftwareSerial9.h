@@ -68,6 +68,7 @@ public:
    using Print::write;
 
 private:
+   void RegisterInterface(int receivePin, int transmitPin, bool inverse_logic, unsigned int buffSize);
    bool isValidGPIOpin(int pin);
 
    // Member variables
